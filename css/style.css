@@ -2291,8 +2291,10 @@ textarea.input {
     top: 100%;
     z-index: 15;
     width: calc(100% + 2.5rem);
-    min-height: calc(100vh - 200%);
+    min-height: 100vh;
     height: 100%;
+    background-color: rgba(0,0,0,.7);
+    padding-bottom: 50%;
     overflow: auto;
     transition: left .3s;
     color: var(--primary)
