@@ -1,5 +1,13 @@
 (() => {
     "use strict";
+    const modules_flsModules = {};
+    function getHash() {
+        if (location.hash) return location.hash.replace("#", "");
+    }
+    function setHash(hash) {
+        hash = hash ? `#${hash}` : window.location.href.split("#")[0];
+        history.pushState("", "", hash);
+    }
     let _slideUp = (target, duration = 500, showmore = 0) => {
         if (!target.classList.contains("_slide")) {
             target.classList.add("_slide");
@@ -101,16 +109,122 @@
             }), delay);
         }
     };
+    function tabs() {
+        const tabs = document.querySelectorAll("[data-tabs]");
+        let tabsActiveHash = [];
+        let scrollBlockHeight = 210;
+        if (tabs.length > 0) {
+            const hash = getHash();
+            if (hash && hash.startsWith("tab-")) tabsActiveHash = hash.replace("tab-", "").split("-");
+            tabs.forEach(((tabsBlock, index) => {
+                tabsBlock.classList.add("_tab-init");
+                tabsBlock.setAttribute("data-tabs-index", index);
+                tabsBlock.addEventListener("click", setTabsAction);
+                initTabs(tabsBlock);
+            }));
+            let mdQueriesArray = dataMediaQueries(tabs, "tabs");
+            if (mdQueriesArray && mdQueriesArray.length) mdQueriesArray.forEach((mdQueriesItem => {
+                mdQueriesItem.matchMedia.addEventListener("change", (function() {
+                    setTitlePosition(mdQueriesItem.itemsArray, mdQueriesItem.matchMedia);
+                }));
+                setTitlePosition(mdQueriesItem.itemsArray, mdQueriesItem.matchMedia);
+            }));
+        }
+        function setTitlePosition(tabsMediaArray, matchMedia) {
+            tabsMediaArray.forEach((tabsMediaItem => {
+                tabsMediaItem = tabsMediaItem.item;
+                let tabsTitles = tabsMediaItem.querySelector("[data-tabs-titles]");
+                let tabsTitleItems = tabsMediaItem.querySelectorAll("[data-tabs-title]");
+                let tabsContent = tabsMediaItem.querySelector("[data-tabs-body]");
+                let tabsContentItems = tabsMediaItem.querySelectorAll("[data-tabs-item]");
+                tabsTitleItems = Array.from(tabsTitleItems).filter((item => item.closest("[data-tabs]") === tabsMediaItem));
+                tabsContentItems = Array.from(tabsContentItems).filter((item => item.closest("[data-tabs]") === tabsMediaItem));
+                tabsContentItems.forEach(((tabsContentItem, index) => {
+                    if (matchMedia.matches) {
+                        tabsContent.append(tabsTitleItems[index]);
+                        tabsContent.append(tabsContentItem);
+                        tabsMediaItem.classList.add("_tab-spoller");
+                    } else {
+                        tabsTitles.append(tabsTitleItems[index]);
+                        tabsMediaItem.classList.remove("_tab-spoller");
+                    }
+                }));
+            }));
+        }
+        function initTabs(tabsBlock) {
+            let tabsTitles = tabsBlock.querySelectorAll("[data-tabs-titles]>*");
+            let tabsContent = tabsBlock.querySelectorAll("[data-tabs-body]>*");
+            const tabsBlockIndex = tabsBlock.dataset.tabsIndex;
+            const tabsActiveHashBlock = tabsActiveHash[0] == tabsBlockIndex;
+            if (tabsActiveHashBlock) {
+                const tabsActiveTitle = tabsBlock.querySelector("[data-tabs-titles]>._tab-active");
+                tabsActiveTitle ? tabsActiveTitle.classList.remove("_tab-active") : null;
+            }
+            if (tabsContent.length) tabsContent.forEach(((tabsContentItem, index) => {
+                tabsTitles[index].setAttribute("data-tabs-title", "");
+                tabsContentItem.setAttribute("data-tabs-item", "");
+                if (tabsActiveHashBlock && index == tabsActiveHash[1]) tabsTitles[index].classList.add("_tab-active");
+                tabsContentItem.hidden = !tabsTitles[index].classList.contains("_tab-active");
+            }));
+        }
+        function scrollToTopOfElement(elementBlock, height) {
+            if (elementBlock) {
+                const offset = elementBlock.offsetTop - height;
+                window.scrollTo({
+                    top: offset,
+                    behavior: "smooth"
+                });
+            }
+        }
+        function setTabsStatus(tabsBlock) {
+            let tabsTitles = tabsBlock.querySelectorAll("[data-tabs-title]");
+            let tabsContent = tabsBlock.querySelectorAll("[data-tabs-item]");
+            const tabsBlockIndex = tabsBlock.dataset.tabsIndex;
+            function isTabsAnamate(tabsBlock) {
+                if (tabsBlock.hasAttribute("data-tabs-animate")) return tabsBlock.dataset.tabsAnimate > 0 ? Number(tabsBlock.dataset.tabsAnimate) : 500;
+            }
+            const tabsBlockAnimate = isTabsAnamate(tabsBlock);
+            if (tabsContent.length > 0) {
+                const isHash = tabsBlock.hasAttribute("data-tabs-hash");
+                tabsContent = Array.from(tabsContent).filter((item => item.closest("[data-tabs]") === tabsBlock));
+                tabsTitles = Array.from(tabsTitles).filter((item => item.closest("[data-tabs]") === tabsBlock));
+                tabsContent.forEach(((tabsContentItem, index) => {
+                    if (tabsTitles[index].classList.contains("_tab-active")) {
+                        if (tabsBlockAnimate) _slideDown(tabsContentItem, tabsBlockAnimate); else {
+                            tabsContentItem.hidden = false;
+                            if (tabsBlock.closest("[data-tabs-scroll]")) scrollToTopOfElement(tabsContentItem, scrollBlockHeight);
+                        }
+                        if (isHash && !tabsContentItem.closest(".popup")) setHash(`tab-${tabsBlockIndex}-${index}`);
+                    } else if (tabsBlockAnimate) _slideUp(tabsContentItem, tabsBlockAnimate); else tabsContentItem.hidden = true;
+                }));
+            }
+        }
+        function setTabsAction(e) {
+            const el = e.target;
+            if (el.closest("[data-tabs-title]")) {
+                const tabTitle = el.closest("[data-tabs-title]");
+                const tabsBlock = tabTitle.closest("[data-tabs]");
+                if (!tabTitle.classList.contains("_tab-active") && !tabsBlock.querySelector("._slide")) {
+                    let tabActiveTitle = tabsBlock.querySelectorAll("[data-tabs-title]._tab-active");
+                    tabActiveTitle.length ? tabActiveTitle = Array.from(tabActiveTitle).filter((item => item.closest("[data-tabs]") === tabsBlock)) : null;
+                    tabActiveTitle.length ? tabActiveTitle[0].classList.remove("_tab-active") : null;
+                    tabTitle.classList.add("_tab-active");
+                    setTabsStatus(tabsBlock);
+                }
+                e.preventDefault();
+            }
+        }
+    }
     function menuInit() {
         if (document.querySelector(".icon-menu")) document.addEventListener("click", (function(e) {
             if (bodyLockStatus && e.target.closest(".icon-menu")) {
                 bodyLockToggle();
                 document.documentElement.classList.toggle("menu-open");
             }
-            if (!e.target.closest(".icon-menu") && !e.target.closest(".menu__body")) functions_menuClose();
+            if (!e.target.closest(".icon-menu") && !e.target.closest(".menu__body") && !e.target.closest(".popup__content")) menuClose();
         }));
     }
-    function functions_menuClose() {
+    function menuClose() {
         bodyUnlock();
         document.documentElement.classList.remove("menu-open");
     }
@@ -221,6 +335,11 @@
             }
         }));
     }
+    function functions_FLS(message) {
+        setTimeout((() => {
+            if (window.FLS) console.log(message);
+        }), 0);
+    }
     function removeClasses(array, className) {
         for (var i = 0; i < array.length; i++) array[i].classList.remove(className);
     }
@@ -267,14 +386,317 @@
             }
         }
     }
-    function ssr_window_esm_isObject(obj) {
+    class Popup {
+        constructor(options) {
+            let config = {
+                logging: true,
+                init: true,
+                attributeOpenButton: "data-popup",
+                attributeCloseButton: "data-close",
+                fixElementSelector: "[data-lp]",
+                youtubeAttribute: "data-popup-youtube",
+                youtubePlaceAttribute: "data-popup-youtube-place",
+                setAutoplayYoutube: true,
+                classes: {
+                    popup: "popup",
+                    popupContent: "popup__content",
+                    popupActive: "popup_show",
+                    bodyActive: "popup-show"
+                },
+                focusCatch: true,
+                closeEsc: true,
+                bodyLock: true,
+                hashSettings: {
+                    location: false,
+                    goHash: false
+                },
+                on: {
+                    beforeOpen: function() {},
+                    afterOpen: function() {},
+                    beforeClose: function() {},
+                    afterClose: function() {}
+                }
+            };
+            this.youTubeCode;
+            this.isOpen = false;
+            this.targetOpen = {
+                selector: false,
+                element: false
+            };
+            this.previousOpen = {
+                selector: false,
+                element: false
+            };
+            this.lastClosed = {
+                selector: false,
+                element: false
+            };
+            this._dataValue = false;
+            this.hash = false;
+            this._reopen = false;
+            this._selectorOpen = false;
+            this.lastFocusEl = false;
+            this._focusEl = [ "a[href]", 'input:not([disabled]):not([type="hidden"]):not([aria-hidden])', "button:not([disabled]):not([aria-hidden])", "select:not([disabled]):not([aria-hidden])", "textarea:not([disabled]):not([aria-hidden])", "area[href]", "iframe", "object", "embed", "[contenteditable]", '[tabindex]:not([tabindex^="-"])' ];
+            this.options = {
+                ...config,
+                ...options,
+                classes: {
+                    ...config.classes,
+                    ...options?.classes
+                },
+                hashSettings: {
+                    ...config.hashSettings,
+                    ...options?.hashSettings
+                },
+                on: {
+                    ...config.on,
+                    ...options?.on
+                }
+            };
+            this.bodyLock = false;
+            this.options.init ? this.initPopups() : null;
+        }
+        initPopups() {
+            this.popupLogging(`Прокинувся`);
+            this.eventsPopup();
+        }
+        eventsPopup() {
+            document.addEventListener("click", function(e) {
+                const buttonOpen = e.target.closest(`[${this.options.attributeOpenButton}]`);
+                if (buttonOpen) {
+                    e.preventDefault();
+                    this._dataValue = buttonOpen.getAttribute(this.options.attributeOpenButton) ? buttonOpen.getAttribute(this.options.attributeOpenButton) : "error";
+                    this.youTubeCode = buttonOpen.getAttribute(this.options.youtubeAttribute) ? buttonOpen.getAttribute(this.options.youtubeAttribute) : null;
+                    if (this._dataValue !== "error") {
+                        if (!this.isOpen) this.lastFocusEl = buttonOpen;
+                        this.targetOpen.selector = `${this._dataValue}`;
+                        this._selectorOpen = true;
+                        this.open();
+                        return;
+                    } else this.popupLogging(`Йой, не заповнено атрибут у ${buttonOpen.classList}`);
+                    return;
+                }
+                const buttonClose = e.target.closest(`[${this.options.attributeCloseButton}]`);
+                if (buttonClose || !e.target.closest(`.${this.options.classes.popupContent}`) && this.isOpen) {
+                    e.preventDefault();
+                    this.close();
+                    return;
+                }
+            }.bind(this));
+            document.addEventListener("keydown", function(e) {
+                if (this.options.closeEsc && e.which == 27 && e.code === "Escape" && this.isOpen) {
+                    e.preventDefault();
+                    this.close();
+                    return;
+                }
+                if (this.options.focusCatch && e.which == 9 && this.isOpen) {
+                    this._focusCatch(e);
+                    return;
+                }
+            }.bind(this));
+            if (this.options.hashSettings.goHash) {
+                window.addEventListener("hashchange", function() {
+                    if (window.location.hash) this._openToHash(); else this.close(this.targetOpen.selector);
+                }.bind(this));
+                window.addEventListener("load", function() {
+                    if (window.location.hash) this._openToHash();
+                }.bind(this));
+            }
+        }
+        open(selectorValue) {
+            if (bodyLockStatus) {
+                this.bodyLock = document.documentElement.classList.contains("lock") && !this.isOpen ? true : false;
+                if (selectorValue && typeof selectorValue === "string" && selectorValue.trim() !== "") {
+                    this.targetOpen.selector = selectorValue;
+                    this._selectorOpen = true;
+                }
+                if (this.isOpen) {
+                    this._reopen = true;
+                    this.close();
+                }
+                if (!this._selectorOpen) this.targetOpen.selector = this.lastClosed.selector;
+                if (!this._reopen) this.previousActiveElement = document.activeElement;
+                this.targetOpen.element = document.querySelector(this.targetOpen.selector);
+                if (this.targetOpen.element) {
+                    if (this.youTubeCode) {
+                        const codeVideo = this.youTubeCode;
+                        const urlVideo = `https://www.youtube.com/embed/${codeVideo}?rel=0&showinfo=0&autoplay=1`;
+                        const iframe = document.createElement("iframe");
+                        iframe.setAttribute("allowfullscreen", "");
+                        const autoplay = this.options.setAutoplayYoutube ? "autoplay;" : "";
+                        iframe.setAttribute("allow", `${autoplay}; encrypted-media`);
+                        iframe.setAttribute("src", urlVideo);
+                        if (!this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`)) {
+                            this.targetOpen.element.querySelector(".popup__text").setAttribute(`${this.options.youtubePlaceAttribute}`, "");
+                        }
+                        this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`).appendChild(iframe);
+                    }
+                    if (this.options.hashSettings.location) {
+                        this._getHash();
+                        this._setHash();
+                    }
+                    this.options.on.beforeOpen(this);
+                    document.dispatchEvent(new CustomEvent("beforePopupOpen", {
+                        detail: {
+                            popup: this
+                        }
+                    }));
+                    this.targetOpen.element.classList.add(this.options.classes.popupActive);
+                    document.documentElement.classList.add(this.options.classes.bodyActive);
+                    if (!this._reopen) !this.bodyLock ? bodyLock() : null; else this._reopen = false;
+                    this.targetOpen.element.setAttribute("aria-hidden", "false");
+                    this.previousOpen.selector = this.targetOpen.selector;
+                    this.previousOpen.element = this.targetOpen.element;
+                    this._selectorOpen = false;
+                    this.isOpen = true;
+                    setTimeout((() => {
+                        this._focusTrap();
+                    }), 50);
+                    this.options.on.afterOpen(this);
+                    document.dispatchEvent(new CustomEvent("afterPopupOpen", {
+                        detail: {
+                            popup: this
+                        }
+                    }));
+                    this.popupLogging(`Відкрив попап`);
+                } else this.popupLogging(`Йой, такого попапу немає. Перевірте коректність введення. `);
+            }
+        }
+        close(selectorValue) {
+            if (selectorValue && typeof selectorValue === "string" && selectorValue.trim() !== "") this.previousOpen.selector = selectorValue;
+            if (!this.isOpen || !bodyLockStatus) return;
+            this.options.on.beforeClose(this);
+            document.dispatchEvent(new CustomEvent("beforePopupClose", {
+                detail: {
+                    popup: this
+                }
+            }));
+            if (this.youTubeCode) if (this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`)) this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`).innerHTML = "";
+            this.previousOpen.element.classList.remove(this.options.classes.popupActive);
+            this.previousOpen.element.setAttribute("aria-hidden", "true");
+            if (!this._reopen) {
+                document.documentElement.classList.remove(this.options.classes.bodyActive);
+                !this.bodyLock ? bodyUnlock() : null;
+                this.isOpen = false;
+            }
+            this._removeHash();
+            if (this._selectorOpen) {
+                this.lastClosed.selector = this.previousOpen.selector;
+                this.lastClosed.element = this.previousOpen.element;
+            }
+            this.options.on.afterClose(this);
+            document.dispatchEvent(new CustomEvent("afterPopupClose", {
+                detail: {
+                    popup: this
+                }
+            }));
+            setTimeout((() => {
+                this._focusTrap();
+            }), 50);
+            this.popupLogging(`Закрив попап`);
+        }
+        _getHash() {
+            if (this.options.hashSettings.location) this.hash = this.targetOpen.selector.includes("#") ? this.targetOpen.selector : this.targetOpen.selector.replace(".", "#");
+        }
+        _openToHash() {
+            let classInHash = document.querySelector(`.${window.location.hash.replace("#", "")}`) ? `.${window.location.hash.replace("#", "")}` : document.querySelector(`${window.location.hash}`) ? `${window.location.hash}` : null;
+            const buttons = document.querySelector(`[${this.options.attributeOpenButton} = "${classInHash}"]`) ? document.querySelector(`[${this.options.attributeOpenButton} = "${classInHash}"]`) : document.querySelector(`[${this.options.attributeOpenButton} = "${classInHash.replace(".", "#")}"]`);
+            this.youTubeCode = buttons.getAttribute(this.options.youtubeAttribute) ? buttons.getAttribute(this.options.youtubeAttribute) : null;
+            if (buttons && classInHash) this.open(classInHash);
+        }
+        _setHash() {
+            history.pushState("", "", this.hash);
+        }
+        _removeHash() {
+            history.pushState("", "", window.location.href.split("#")[0]);
+        }
+        _focusCatch(e) {
+            const focusable = this.targetOpen.element.querySelectorAll(this._focusEl);
+            const focusArray = Array.prototype.slice.call(focusable);
+            const focusedIndex = focusArray.indexOf(document.activeElement);
+            if (e.shiftKey && focusedIndex === 0) {
+                focusArray[focusArray.length - 1].focus();
+                e.preventDefault();
+            }
+            if (!e.shiftKey && focusedIndex === focusArray.length - 1) {
+                focusArray[0].focus();
+                e.preventDefault();
+            }
+        }
+        _focusTrap() {
+            const focusable = this.previousOpen.element.querySelectorAll(this._focusEl);
+            if (!this.isOpen && this.lastFocusEl) this.lastFocusEl.focus(); else focusable[0].focus();
+        }
+        popupLogging(message) {
+            this.options.logging ? functions_FLS(`[Попапос]: ${message}`) : null;
+        }
+    }
+    modules_flsModules.popup = new Popup({});
+    let gotoblock_gotoBlock = (targetBlock, noHeader = false, speed = 500, offsetTop = 0) => {
+        const targetBlockElement = document.querySelector(targetBlock);
+        if (targetBlockElement) {
+            let headerItem = "";
+            let headerItemHeight = 0;
+            if (noHeader) {
+                headerItem = "header.header";
+                const headerElement = document.querySelector(headerItem);
+                if (!headerElement.classList.contains("_header-scroll")) {
+                    headerElement.style.cssText = `transition-duration: 0s;`;
+                    headerElement.classList.add("_header-scroll");
+                    headerItemHeight = headerElement.offsetHeight;
+                    headerElement.classList.remove("_header-scroll");
+                    setTimeout((() => {
+                        headerElement.style.cssText = ``;
+                    }), 0);
+                } else headerItemHeight = headerElement.offsetHeight;
+            }
+            let options = {
+                speedAsDuration: true,
+                speed,
+                header: headerItem,
+                offset: offsetTop,
+                easing: "easeOutQuad"
+            };
+            document.documentElement.classList.contains("menu-open") ? menuClose() : null;
+            if (typeof SmoothScroll !== "undefined") (new SmoothScroll).animateScroll(targetBlockElement, "", options); else {
+                let targetBlockElementPosition = targetBlockElement.getBoundingClientRect().top + scrollY;
+                targetBlockElementPosition = headerItemHeight ? targetBlockElementPosition - headerItemHeight : targetBlockElementPosition;
+                targetBlockElementPosition = offsetTop ? targetBlockElementPosition - offsetTop : targetBlockElementPosition;
+                window.scrollTo({
+                    top: targetBlockElementPosition,
+                    behavior: "smooth"
+                });
+            }
+            functions_FLS(`[gotoBlock]: Юхуу...їдемо до ${targetBlock}`);
+        } else functions_FLS(`[gotoBlock]: Йой... Такого блоку немає на сторінці: ${targetBlock}`);
+    };
+    function formQuantity() {
+        document.addEventListener("click", (function(e) {
+            let targetElement = e.target;
+            if (targetElement.closest("[data-quantity-plus]") || targetElement.closest("[data-quantity-minus]")) {
+                const valueElement = targetElement.closest("[data-quantity]").querySelector("[data-quantity-value]");
+                let value = parseInt(valueElement.value);
+                if (targetElement.hasAttribute("data-quantity-plus")) {
+                    value++;
+                    if (+valueElement.dataset.quantityMax && +valueElement.dataset.quantityMax < value) value = valueElement.dataset.quantityMax;
+                } else {
+                    --value;
+                    if (+valueElement.dataset.quantityMin) {
+                        if (+valueElement.dataset.quantityMin > value) value = valueElement.dataset.quantityMin;
+                    } else if (value < 1) value = 1;
+                }
+                targetElement.closest("[data-quantity]").querySelector("[data-quantity-value]").value = value;
+            }
+        }));
+    }
+    function isObject(obj) {
         return obj !== null && typeof obj === "object" && "constructor" in obj && obj.constructor === Object;
     }
     function extend(target, src) {
         if (target === void 0) target = {};
         if (src === void 0) src = {};
         Object.keys(src).forEach((key => {
-            if (typeof target[key] === "undefined") target[key] = src[key]; else if (ssr_window_esm_isObject(src[key]) && ssr_window_esm_isObject(target[key]) && Object.keys(src[key]).length > 0) extend(target[key], src[key]);
+            if (typeof target[key] === "undefined") target[key] = src[key]; else if (isObject(src[key]) && isObject(target[key]) && Object.keys(src[key]).length > 0) extend(target[key], src[key]);
         }));
     }
     const ssrDocument = {
@@ -2806,7 +3228,7 @@
         classes
     };
     const extendedDefaults = {};
-    class swiper_core_Swiper {
+    class Swiper {
         constructor() {
             let el;
             let params;
@@ -2822,7 +3244,7 @@
                     const newParams = utils_extend({}, params, {
                         el: containerEl
                     });
-                    swipers.push(new swiper_core_Swiper(newParams));
+                    swipers.push(new Swiper(newParams));
                 }));
                 return swipers;
             }
@@ -3194,25 +3616,25 @@
             return defaults;
         }
         static installModule(mod) {
-            if (!swiper_core_Swiper.prototype.__modules__) swiper_core_Swiper.prototype.__modules__ = [];
-            const modules = swiper_core_Swiper.prototype.__modules__;
+            if (!Swiper.prototype.__modules__) Swiper.prototype.__modules__ = [];
+            const modules = Swiper.prototype.__modules__;
             if (typeof mod === "function" && modules.indexOf(mod) < 0) modules.push(mod);
         }
         static use(module) {
             if (Array.isArray(module)) {
-                module.forEach((m => swiper_core_Swiper.installModule(m)));
-                return swiper_core_Swiper;
+                module.forEach((m => Swiper.installModule(m)));
+                return Swiper;
             }
-            swiper_core_Swiper.installModule(module);
-            return swiper_core_Swiper;
+            Swiper.installModule(module);
+            return Swiper;
         }
     }
     Object.keys(prototypes).forEach((prototypeGroup => {
         Object.keys(prototypes[prototypeGroup]).forEach((protoMethod => {
-            swiper_core_Swiper.prototype[protoMethod] = prototypes[prototypeGroup][protoMethod];
+            Swiper.prototype[protoMethod] = prototypes[prototypeGroup][protoMethod];
         }));
     }));
-    swiper_core_Swiper.use([ Resize, Observer ]);
+    Swiper.use([ Resize, Observer ]);
     function create_element_if_not_defined_createElementIfNotDefined(swiper, originalParams, params, checkProps) {
         if (swiper.params.createElements) Object.keys(checkProps).forEach((key => {
             if (!params[key] && params.auto === true) {
@@ -3227,6 +3649,154 @@
             }
         }));
         return params;
+    }
+    function Navigation(_ref) {
+        let {swiper, extendParams, on, emit} = _ref;
+        extendParams({
+            navigation: {
+                nextEl: null,
+                prevEl: null,
+                hideOnClick: false,
+                disabledClass: "swiper-button-disabled",
+                hiddenClass: "swiper-button-hidden",
+                lockClass: "swiper-button-lock",
+                navigationDisabledClass: "swiper-navigation-disabled"
+            }
+        });
+        swiper.navigation = {
+            nextEl: null,
+            prevEl: null
+        };
+        function getEl(el) {
+            let res;
+            if (el && typeof el === "string" && swiper.isElement) {
+                res = swiper.el.querySelector(el);
+                if (res) return res;
+            }
+            if (el) {
+                if (typeof el === "string") res = [ ...document.querySelectorAll(el) ];
+                if (swiper.params.uniqueNavElements && typeof el === "string" && res && res.length > 1 && swiper.el.querySelectorAll(el).length === 1) res = swiper.el.querySelector(el); else if (res && res.length === 1) res = res[0];
+            }
+            if (el && !res) return el;
+            return res;
+        }
+        function toggleEl(el, disabled) {
+            const params = swiper.params.navigation;
+            el = utils_makeElementsArray(el);
+            el.forEach((subEl => {
+                if (subEl) {
+                    subEl.classList[disabled ? "add" : "remove"](...params.disabledClass.split(" "));
+                    if (subEl.tagName === "BUTTON") subEl.disabled = disabled;
+                    if (swiper.params.watchOverflow && swiper.enabled) subEl.classList[swiper.isLocked ? "add" : "remove"](params.lockClass);
+                }
+            }));
+        }
+        function update() {
+            const {nextEl, prevEl} = swiper.navigation;
+            if (swiper.params.loop) {
+                toggleEl(prevEl, false);
+                toggleEl(nextEl, false);
+                return;
+            }
+            toggleEl(prevEl, swiper.isBeginning && !swiper.params.rewind);
+            toggleEl(nextEl, swiper.isEnd && !swiper.params.rewind);
+        }
+        function onPrevClick(e) {
+            e.preventDefault();
+            if (swiper.isBeginning && !swiper.params.loop && !swiper.params.rewind) return;
+            swiper.slidePrev();
+            emit("navigationPrev");
+        }
+        function onNextClick(e) {
+            e.preventDefault();
+            if (swiper.isEnd && !swiper.params.loop && !swiper.params.rewind) return;
+            swiper.slideNext();
+            emit("navigationNext");
+        }
+        function init() {
+            const params = swiper.params.navigation;
+            swiper.params.navigation = create_element_if_not_defined_createElementIfNotDefined(swiper, swiper.originalParams.navigation, swiper.params.navigation, {
+                nextEl: "swiper-button-next",
+                prevEl: "swiper-button-prev"
+            });
+            if (!(params.nextEl || params.prevEl)) return;
+            let nextEl = getEl(params.nextEl);
+            let prevEl = getEl(params.prevEl);
+            Object.assign(swiper.navigation, {
+                nextEl,
+                prevEl
+            });
+            nextEl = utils_makeElementsArray(nextEl);
+            prevEl = utils_makeElementsArray(prevEl);
+            const initButton = (el, dir) => {
+                if (el) el.addEventListener("click", dir === "next" ? onNextClick : onPrevClick);
+                if (!swiper.enabled && el) el.classList.add(...params.lockClass.split(" "));
+            };
+            nextEl.forEach((el => initButton(el, "next")));
+            prevEl.forEach((el => initButton(el, "prev")));
+        }
+        function destroy() {
+            let {nextEl, prevEl} = swiper.navigation;
+            nextEl = utils_makeElementsArray(nextEl);
+            prevEl = utils_makeElementsArray(prevEl);
+            const destroyButton = (el, dir) => {
+                el.removeEventListener("click", dir === "next" ? onNextClick : onPrevClick);
+                el.classList.remove(...swiper.params.navigation.disabledClass.split(" "));
+            };
+            nextEl.forEach((el => destroyButton(el, "next")));
+            prevEl.forEach((el => destroyButton(el, "prev")));
+        }
+        on("init", (() => {
+            if (swiper.params.navigation.enabled === false) disable(); else {
+                init();
+                update();
+            }
+        }));
+        on("toEdge fromEdge lock unlock", (() => {
+            update();
+        }));
+        on("destroy", (() => {
+            destroy();
+        }));
+        on("enable disable", (() => {
+            let {nextEl, prevEl} = swiper.navigation;
+            nextEl = utils_makeElementsArray(nextEl);
+            prevEl = utils_makeElementsArray(prevEl);
+            if (swiper.enabled) {
+                update();
+                return;
+            }
+            [ ...nextEl, ...prevEl ].filter((el => !!el)).forEach((el => el.classList.add(swiper.params.navigation.lockClass)));
+        }));
+        on("click", ((_s, e) => {
+            let {nextEl, prevEl} = swiper.navigation;
+            nextEl = utils_makeElementsArray(nextEl);
+            prevEl = utils_makeElementsArray(prevEl);
+            const targetEl = e.target;
+            if (swiper.params.navigation.hideOnClick && !prevEl.includes(targetEl) && !nextEl.includes(targetEl)) {
+                if (swiper.pagination && swiper.params.pagination && swiper.params.pagination.clickable && (swiper.pagination.el === targetEl || swiper.pagination.el.contains(targetEl))) return;
+                let isHidden;
+                if (nextEl.length) isHidden = nextEl[0].classList.contains(swiper.params.navigation.hiddenClass); else if (prevEl.length) isHidden = prevEl[0].classList.contains(swiper.params.navigation.hiddenClass);
+                if (isHidden === true) emit("navigationShow"); else emit("navigationHide");
+                [ ...nextEl, ...prevEl ].filter((el => !!el)).forEach((el => el.classList.toggle(swiper.params.navigation.hiddenClass)));
+            }
+        }));
+        const enable = () => {
+            swiper.el.classList.remove(...swiper.params.navigation.navigationDisabledClass.split(" "));
+            init();
+            update();
+        };
+        const disable = () => {
+            swiper.el.classList.add(...swiper.params.navigation.navigationDisabledClass.split(" "));
+            destroy();
+        };
+        Object.assign(swiper.navigation, {
+            enable,
+            disable,
+            update,
+            init,
+            destroy
+        });
     }
     function classes_to_selector_classesToSelector(classes) {
         if (classes === void 0) classes = "";
@@ -3804,8 +4374,151 @@
             resume
         });
     }
+    function Thumb(_ref) {
+        let {swiper, extendParams, on} = _ref;
+        extendParams({
+            thumbs: {
+                swiper: null,
+                multipleActiveThumbs: true,
+                autoScrollOffset: 0,
+                slideThumbActiveClass: "swiper-slide-thumb-active",
+                thumbsContainerClass: "swiper-thumbs"
+            }
+        });
+        let initialized = false;
+        let swiperCreated = false;
+        swiper.thumbs = {
+            swiper: null
+        };
+        function onThumbClick() {
+            const thumbsSwiper = swiper.thumbs.swiper;
+            if (!thumbsSwiper || thumbsSwiper.destroyed) return;
+            const clickedIndex = thumbsSwiper.clickedIndex;
+            const clickedSlide = thumbsSwiper.clickedSlide;
+            if (clickedSlide && clickedSlide.classList.contains(swiper.params.thumbs.slideThumbActiveClass)) return;
+            if (typeof clickedIndex === "undefined" || clickedIndex === null) return;
+            let slideToIndex;
+            if (thumbsSwiper.params.loop) slideToIndex = parseInt(thumbsSwiper.clickedSlide.getAttribute("data-swiper-slide-index"), 10); else slideToIndex = clickedIndex;
+            if (swiper.params.loop) swiper.slideToLoop(slideToIndex); else swiper.slideTo(slideToIndex);
+        }
+        function init() {
+            const {thumbs: thumbsParams} = swiper.params;
+            if (initialized) return false;
+            initialized = true;
+            const SwiperClass = swiper.constructor;
+            if (thumbsParams.swiper instanceof SwiperClass) {
+                swiper.thumbs.swiper = thumbsParams.swiper;
+                Object.assign(swiper.thumbs.swiper.originalParams, {
+                    watchSlidesProgress: true,
+                    slideToClickedSlide: false
+                });
+                Object.assign(swiper.thumbs.swiper.params, {
+                    watchSlidesProgress: true,
+                    slideToClickedSlide: false
+                });
+                swiper.thumbs.swiper.update();
+            } else if (utils_isObject(thumbsParams.swiper)) {
+                const thumbsSwiperParams = Object.assign({}, thumbsParams.swiper);
+                Object.assign(thumbsSwiperParams, {
+                    watchSlidesProgress: true,
+                    slideToClickedSlide: false
+                });
+                swiper.thumbs.swiper = new SwiperClass(thumbsSwiperParams);
+                swiperCreated = true;
+            }
+            swiper.thumbs.swiper.el.classList.add(swiper.params.thumbs.thumbsContainerClass);
+            swiper.thumbs.swiper.on("tap", onThumbClick);
+            return true;
+        }
+        function update(initial) {
+            const thumbsSwiper = swiper.thumbs.swiper;
+            if (!thumbsSwiper || thumbsSwiper.destroyed) return;
+            const slidesPerView = thumbsSwiper.params.slidesPerView === "auto" ? thumbsSwiper.slidesPerViewDynamic() : thumbsSwiper.params.slidesPerView;
+            let thumbsToActivate = 1;
+            const thumbActiveClass = swiper.params.thumbs.slideThumbActiveClass;
+            if (swiper.params.slidesPerView > 1 && !swiper.params.centeredSlides) thumbsToActivate = swiper.params.slidesPerView;
+            if (!swiper.params.thumbs.multipleActiveThumbs) thumbsToActivate = 1;
+            thumbsToActivate = Math.floor(thumbsToActivate);
+            thumbsSwiper.slides.forEach((slideEl => slideEl.classList.remove(thumbActiveClass)));
+            if (thumbsSwiper.params.loop || thumbsSwiper.params.virtual && thumbsSwiper.params.virtual.enabled) for (let i = 0; i < thumbsToActivate; i += 1) utils_elementChildren(thumbsSwiper.slidesEl, `[data-swiper-slide-index="${swiper.realIndex + i}"]`).forEach((slideEl => {
+                slideEl.classList.add(thumbActiveClass);
+            })); else for (let i = 0; i < thumbsToActivate; i += 1) if (thumbsSwiper.slides[swiper.realIndex + i]) thumbsSwiper.slides[swiper.realIndex + i].classList.add(thumbActiveClass);
+            const autoScrollOffset = swiper.params.thumbs.autoScrollOffset;
+            const useOffset = autoScrollOffset && !thumbsSwiper.params.loop;
+            if (swiper.realIndex !== thumbsSwiper.realIndex || useOffset) {
+                const currentThumbsIndex = thumbsSwiper.activeIndex;
+                let newThumbsIndex;
+                let direction;
+                if (thumbsSwiper.params.loop) {
+                    const newThumbsSlide = thumbsSwiper.slides.filter((slideEl => slideEl.getAttribute("data-swiper-slide-index") === `${swiper.realIndex}`))[0];
+                    newThumbsIndex = thumbsSwiper.slides.indexOf(newThumbsSlide);
+                    direction = swiper.activeIndex > swiper.previousIndex ? "next" : "prev";
+                } else {
+                    newThumbsIndex = swiper.realIndex;
+                    direction = newThumbsIndex > swiper.previousIndex ? "next" : "prev";
+                }
+                if (useOffset) newThumbsIndex += direction === "next" ? autoScrollOffset : -1 * autoScrollOffset;
+                if (thumbsSwiper.visibleSlidesIndexes && thumbsSwiper.visibleSlidesIndexes.indexOf(newThumbsIndex) < 0) {
+                    if (thumbsSwiper.params.centeredSlides) if (newThumbsIndex > currentThumbsIndex) newThumbsIndex = newThumbsIndex - Math.floor(slidesPerView / 2) + 1; else newThumbsIndex = newThumbsIndex + Math.floor(slidesPerView / 2) - 1; else if (newThumbsIndex > currentThumbsIndex && thumbsSwiper.params.slidesPerGroup === 1) ;
+                    thumbsSwiper.slideTo(newThumbsIndex, initial ? 0 : void 0);
+                }
+            }
+        }
+        on("beforeInit", (() => {
+            const {thumbs} = swiper.params;
+            if (!thumbs || !thumbs.swiper) return;
+            if (typeof thumbs.swiper === "string" || thumbs.swiper instanceof HTMLElement) {
+                const document = ssr_window_esm_getDocument();
+                const getThumbsElementAndInit = () => {
+                    const thumbsElement = typeof thumbs.swiper === "string" ? document.querySelector(thumbs.swiper) : thumbs.swiper;
+                    if (thumbsElement && thumbsElement.swiper) {
+                        thumbs.swiper = thumbsElement.swiper;
+                        init();
+                        update(true);
+                    } else if (thumbsElement) {
+                        const onThumbsSwiper = e => {
+                            thumbs.swiper = e.detail[0];
+                            thumbsElement.removeEventListener("init", onThumbsSwiper);
+                            init();
+                            update(true);
+                            thumbs.swiper.update();
+                            swiper.update();
+                        };
+                        thumbsElement.addEventListener("init", onThumbsSwiper);
+                    }
+                    return thumbsElement;
+                };
+                const watchForThumbsToAppear = () => {
+                    if (swiper.destroyed) return;
+                    const thumbsElement = getThumbsElementAndInit();
+                    if (!thumbsElement) requestAnimationFrame(watchForThumbsToAppear);
+                };
+                requestAnimationFrame(watchForThumbsToAppear);
+            } else {
+                init();
+                update(true);
+            }
+        }));
+        on("slideChange update resize observerUpdate", (() => {
+            update();
+        }));
+        on("setTransition", ((_s, duration) => {
+            const thumbsSwiper = swiper.thumbs.swiper;
+            if (!thumbsSwiper || thumbsSwiper.destroyed) return;
+            thumbsSwiper.setTransition(duration);
+        }));
+        on("beforeDestroy", (() => {
+            const thumbsSwiper = swiper.thumbs.swiper;
+            if (!thumbsSwiper || thumbsSwiper.destroyed) return;
+            if (swiperCreated) thumbsSwiper.destroy();
+        }));
+        Object.assign(swiper.thumbs, {
+            init,
+            update
+        });
+    }
     function initSliders() {
-        if (document.querySelector(".promo__slider")) new swiper_core_Swiper(".promo__slider", {
+        if (document.querySelector(".promo__slider")) new Swiper(".promo__slider", {
             modules: [ Pagination, Autoplay ],
             observer: true,
             observeParents: true,
@@ -3826,7 +4539,7 @@
             },
             on: {}
         });
-        if (document.querySelector(".instagram__slider")) new swiper_core_Swiper(".instagram__slider", {
+        if (document.querySelector(".instagram__slider")) new Swiper(".instagram__slider", {
             modules: [],
             observer: true,
             observeParents: true,
@@ -3857,11 +4570,157 @@
             },
             on: {}
         });
+        if (document.querySelector(true && ".about-product__slider")) {
+            const pageProductThumbs = new Swiper(".about-product__thumbs-slider", {
+                modules: [],
+                observer: true,
+                observeParents: true,
+                slidesPerView: 5,
+                spaceBetween: 16,
+                speed: 800,
+                breakpoints: {
+                    319.98: {
+                        slidesPerView: 3,
+                        spaceBetween: 16
+                    },
+                    479.98: {
+                        slidesPerView: 4,
+                        spaceBetween: 16
+                    },
+                    991.98: {
+                        slidesPerView: 5,
+                        spaceBetween: 16
+                    }
+                }
+            });
+            new Swiper(".about-product__slider", {
+                modules: [ Navigation, Thumb ],
+                observer: true,
+                observeParents: true,
+                slidesPerView: 1,
+                spaceBetween: 16,
+                speed: 800,
+                grabCursor: true,
+                thumbs: {
+                    swiper: pageProductThumbs
+                },
+                navigation: {
+                    prevEl: ".about-product__navigation .swiper-button-prev",
+                    nextEl: ".about-product__navigation .swiper-button-next"
+                }
+            });
+        }
+        if (document.querySelector(".proposals__slider")) new Swiper(".proposals__slider", {
+            modules: [ Navigation ],
+            observer: true,
+            observeParents: true,
+            slidesPerView: 4,
+            spaceBetween: 16,
+            speed: 800,
+            navigation: {
+                prevEl: ".swiper-button-prev",
+                nextEl: ".swiper-button-next"
+            },
+            breakpoints: {
+                319: {
+                    slidesPerView: 1,
+                    spaceBetween: 16
+                },
+                479.98: {
+                    slidesPerView: 2,
+                    spaceBetween: 16
+                },
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 16
+                },
+                992: {
+                    slidesPerView: 4,
+                    spaceBetween: 16
+                },
+                1268: {
+                    slidesPerView: 4,
+                    spaceBetween: 16
+                }
+            },
+            on: {}
+        });
     }
     window.addEventListener("load", (function(e) {
         initSliders();
     }));
     let addWindowScrollEvent = false;
+    function pageNavigation() {
+        document.addEventListener("click", pageNavigationAction);
+        document.addEventListener("watcherCallback", pageNavigationAction);
+        function pageNavigationAction(e) {
+            if (e.type === "click") {
+                const targetElement = e.target;
+                if (targetElement.closest("[data-goto]")) {
+                    const gotoLink = targetElement.closest("[data-goto]");
+                    const gotoLinkSelector = gotoLink.dataset.goto ? gotoLink.dataset.goto : "";
+                    const noHeader = gotoLink.hasAttribute("data-goto-header") ? true : false;
+                    const gotoSpeed = gotoLink.dataset.gotoSpeed ? gotoLink.dataset.gotoSpeed : 500;
+                    const offsetTop = gotoLink.dataset.gotoTop ? parseInt(gotoLink.dataset.gotoTop) : 0;
+                    if (modules_flsModules.fullpage) {
+                        const fullpageSection = document.querySelector(`${gotoLinkSelector}`).closest("[data-fp-section]");
+                        const fullpageSectionId = fullpageSection ? +fullpageSection.dataset.fpId : null;
+                        if (fullpageSectionId !== null) {
+                            modules_flsModules.fullpage.switchingSection(fullpageSectionId);
+                            document.documentElement.classList.contains("menu-open") ? menuClose() : null;
+                        }
+                    } else gotoblock_gotoBlock(gotoLinkSelector, noHeader, gotoSpeed, offsetTop);
+                    e.preventDefault();
+                }
+            } else if (e.type === "watcherCallback" && e.detail) {
+                const entry = e.detail.entry;
+                const targetElement = entry.target;
+                if (targetElement.dataset.watch === "navigator") {
+                    document.querySelector(`[data-goto]._navigator-active`);
+                    let navigatorCurrentItem;
+                    if (targetElement.id && document.querySelector(`[data-goto="#${targetElement.id}"]`)) navigatorCurrentItem = document.querySelector(`[data-goto="#${targetElement.id}"]`); else if (targetElement.classList.length) for (let index = 0; index < targetElement.classList.length; index++) {
+                        const element = targetElement.classList[index];
+                        if (document.querySelector(`[data-goto=".${element}"]`)) {
+                            navigatorCurrentItem = document.querySelector(`[data-goto=".${element}"]`);
+                            break;
+                        }
+                    }
+                    if (entry.isIntersecting) navigatorCurrentItem ? navigatorCurrentItem.classList.add("_navigator-active") : null; else navigatorCurrentItem ? navigatorCurrentItem.classList.remove("_navigator-active") : null;
+                }
+            }
+        }
+        if (getHash()) {
+            let goToHash;
+            if (document.querySelector(`#${getHash()}`)) goToHash = `#${getHash()}`; else if (document.querySelector(`.${getHash()}`)) goToHash = `.${getHash()}`;
+            goToHash ? gotoblock_gotoBlock(goToHash, true, 500, 20) : null;
+        }
+    }
+    function headerScroll() {
+        addWindowScrollEvent = true;
+        const header = document.querySelector("header.header");
+        const headerShow = header.hasAttribute("data-scroll-show");
+        const headerShowTimer = header.dataset.scrollShow ? header.dataset.scrollShow : 500;
+        const startPoint = header.dataset.scroll ? header.dataset.scroll : 1;
+        let scrollDirection = 0;
+        let timer;
+        document.addEventListener("windowScroll", (function(e) {
+            const scrollTop = window.scrollY;
+            clearTimeout(timer);
+            if (scrollTop >= startPoint) {
+                !header.classList.contains("_header-scroll") ? header.classList.add("_header-scroll") : null;
+                if (headerShow) {
+                    if (scrollTop > scrollDirection) header.classList.contains("_header-show") ? header.classList.remove("_header-show") : null; else !header.classList.contains("_header-show") ? header.classList.add("_header-show") : null;
+                    timer = setTimeout((() => {
+                        !header.classList.contains("_header-show") ? header.classList.add("_header-show") : null;
+                    }), headerShowTimer);
+                }
+            } else {
+                header.classList.contains("_header-scroll") ? header.classList.remove("_header-scroll") : null;
+                if (headerShow) header.classList.contains("_header-show") ? header.classList.remove("_header-show") : null;
+            }
+            scrollDirection = scrollTop <= 0 ? 0 : scrollTop;
+        }));
+    }
     setTimeout((() => {
         if (addWindowScrollEvent) {
             let windowScroll = new Event("windowScroll");
@@ -3989,7 +4848,7 @@
             targetElement.closest(".header__search").classList.remove("is-open");
             document.querySelector(".header__contacts").classList.remove("hide");
         }
-        if (targetElement.closest(".card-product__wish")) targetElement.closest(".card-product__wish").classList.toggle("active");
+        if (targetElement.closest(".wish-button")) targetElement.closest(".wish-button").classList.toggle("active");
         if (targetElement.closest(".card-product__buy")) targetElement.closest(".card-product__buy").classList.add("active");
         if (targetElement.closest(".chat__btn")) targetElement.closest(".chat").classList.toggle("chat-open");
     }));
@@ -3998,6 +4857,11 @@
             minimumResultsForSearch: 1 / 0
         });
     }));
+    Fancybox.bind("[data-fancybox]", {});
     menuInit();
+    tabs();
     showMore();
+    formQuantity();
+    pageNavigation();
+    headerScroll();
 })();
