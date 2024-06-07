@@ -600,18 +600,23 @@
 							</div>
 						</div>
 					</div>
-					<ul data-da=".menu__bottom, 649.98" class="header__lang">
-						<li>
-							<a href="ru/">
-								Рус
-							</a>
-						</li>
-						<li>
-							<a href="" class="active">
-								Укр
-							</a>
-						</li>
-					</ul>
+					<div data-da=".menu__bottom, 649.98" class="header__lang language">
+						<button type="button" class="language__current">
+							Укр
+						</button>
+						<ul class="language__list">
+							<li>
+								<a href="ru/">
+									Рус
+								</a>
+							</li>
+							<li>
+								<a href="">
+									Укр
+								</a>
+							</li>
+						</ul>
+					</div>
 				</div>
 			</div>
 			<div class="header__bottom">
@@ -679,7 +684,7 @@
 									<input name="name" class="input" placeholder="Ваше прізвище*" value="" val="" type="text" required>
 									<input name="phone" class="input" placeholder="Ваш номер телефону*" value="" type="tel" required>
 									<input name="email" class="input" placeholder="Ваш e-mail" value="" type="email">
-									<div class="cart-page__notidisturb">
+									<div class="cart-page__notdisturb">
 										<label class="checkbox">
 											<input class="checkbox__input" type="checkbox" value="1" name="">
 											<span class="checkbox__fake"></span>
@@ -744,41 +749,6 @@
 									</nav>
 									<div data-tabs-body class="cart-tabs__content">
 										<div class="cart-tabs__body">
-											<div class="cart-tabs__text text-warranty">
-												Ми гарантуємо <strong>конфіденційність доставки</strong> та
-												<strong>якість</strong> товарів
-											</div>
-											<div class="cart-tabs__label">
-												Ваше місто*
-											</div>
-											<input class="cart-tabs__city-input input fn_city" placeholder="Ваше місто*" type="text" data-delivery_id="3" autocomplete="off" data-gtm-form-interact-field-id="0">
-											<ul class="cart-tabs__citys">
-												<li>
-													<a href="" class="cart-tabs__city">Київ</a>
-												</li>
-												<li>
-													<a href="" class="cart-tabs__city">Дніпро</a>
-												</li>
-												<li>
-													<a href="" class="cart-tabs__city">Львів</a>
-												</li>
-												<li>
-													<a href="" class="cart-tabs__city">Запоріжжя</a>
-												</li>
-												<li>
-													<a href="" class="cart-tabs__city">Харків</a>
-												</li>
-												<li>
-													<a href="" class="cart-tabs__city">Одеса</a>
-												</li>
-											</ul>
-											<div class="cart-tabs__inputs">
-												<input name="new_post_recipient_street_name" placeholder="Вулиця" class="input" type="text" data-delivery_id="1" autocomplete="off" data-gtm-form-interact-field-id="1">
-												<input name="new_post_recipient_house" placeholder="Номер дому" class="input" type="text">
-												<input name="new_post_recipient_flat" placeholder="Квартира" class="input" type="number">
-											</div>
-										</div>
-										<div class="cart-tabs__body">
 											<div class="options">
 												<label class="options__item">
 													<input class="options__input" checked type="radio" value="1" name="delivery">
@@ -827,6 +797,41 @@
 											<div class="cart-tabs__text text-warranty">
 												Ми гарантуємо <strong>конфіденційність доставки</strong> та
 												<strong>якість</strong> товарів
+											</div>
+										</div>
+										<div class="cart-tabs__body">
+											<div class="cart-tabs__text text-warranty">
+												Ми гарантуємо <strong>конфіденційність доставки</strong> та
+												<strong>якість</strong> товарів
+											</div>
+											<div class="cart-tabs__label">
+												Ваше місто*
+											</div>
+											<input class="cart-tabs__city-input input fn_city" placeholder="Ваше місто*" type="text" data-delivery_id="3" autocomplete="off" data-gtm-form-interact-field-id="0">
+											<ul class="cart-tabs__citys">
+												<li>
+													<a href="" class="cart-tabs__city">Київ</a>
+												</li>
+												<li>
+													<a href="" class="cart-tabs__city">Дніпро</a>
+												</li>
+												<li>
+													<a href="" class="cart-tabs__city">Львів</a>
+												</li>
+												<li>
+													<a href="" class="cart-tabs__city">Запоріжжя</a>
+												</li>
+												<li>
+													<a href="" class="cart-tabs__city">Харків</a>
+												</li>
+												<li>
+													<a href="" class="cart-tabs__city">Одеса</a>
+												</li>
+											</ul>
+											<div class="cart-tabs__inputs">
+												<input name="new_post_recipient_street_name" placeholder="Вулиця" class="input" type="text" data-delivery_id="1" autocomplete="off" data-gtm-form-interact-field-id="1">
+												<input name="new_post_recipient_house" placeholder="Номер дому" class="input" type="text">
+												<input name="new_post_recipient_flat" placeholder="Квартира" class="input" type="number">
 											</div>
 										</div>
 										<div class="cart-tabs__body">

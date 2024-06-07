@@ -1374,6 +1374,7 @@ function initSliders() {
       observeParents: true,
       slidesPerView: 4,
       spaceBetween: 16,
+      loop: true,
       speed: 800,
       navigation: {
         prevEl: ".swiper-button-prev",
@@ -1716,6 +1717,7 @@ document.addEventListener("click", (e) => {
     removeClasses(document.querySelectorAll(".cart-header.is-open"), "is-open");
   if (targetElement.closest(".header__search-btn")) {
     targetElement.closest(".header__search").classList.toggle("is-open");
+    document.querySelector(".search-input").focus();
     if (document.querySelector(".header__contacts"))
       document.querySelector(".header__contacts").classList.toggle("hide");
   }
@@ -1753,6 +1755,8 @@ document.addEventListener("click", (e) => {
     bodyUnlock();
     document.documentElement.classList.remove("filter-open");
   }
+  if (targetElement.closest(".language__current")) targetElement.closest(".language").classList.toggle("lang-open");
+        if (!targetElement.closest(".language__current")) removeClasses(document.querySelectorAll(".language.lang-open"), "lang-open");
 });
 
 // Виклик select2
